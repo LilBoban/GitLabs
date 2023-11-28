@@ -12,18 +12,8 @@ namespace lab4
             input = input.Replace(" ", string.Empty);
             List<object> tokensList = TokensCreation(input);
             List<object> rpnString = Transformation(tokensList);
-            long result = CalculateRPN(rpnString);
+            double result = CalculateRpn(rpnString);
             Console.WriteLine(result);
-        }
-
-        static string SaveBuffer(List<object> tokens, string buffer)
-        {
-            if (!string.IsNullOrEmpty(buffer))
-            {
-                tokens.Add(int.Parse(buffer));
-            }
-
-            return string.Empty;
         }
 
         static List<object> TokensCreation(string input)
@@ -32,18 +22,31 @@ namespace lab4
             string buffer = string.Empty;
             for (int i = 0; i < input.Length; i++)
             {
-                if (char.IsDigit(input[i]))
+                char currentChar = input[i];
+
+                if (char.IsDigit(currentChar) || currentChar == ',')
                 {
-                    buffer += input[i];
+                    buffer = currentChar.ToString();
+                    while ((i + 1) < input.Length && (char.IsDigit(input[i + 1]) || input[i + 1] == ','))
+                    {
+                        buffer += input[i + 1];
+                        i++;
+                    }
+
+                    if (double.TryParse(buffer, out var parsedValue))
+                    {
+                        tokens.Add(parsedValue);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Ошибка: Неправильный формат числа");
+                    }
                 }
                 else
                 {
-                    buffer = SaveBuffer(tokens, buffer);
-                    tokens.Add(input[i]);
+                    tokens.Add(currentChar.ToString());
                 }
             }
-
-            SaveBuffer(tokens, buffer);
 
             return tokens;
         }
@@ -57,23 +60,26 @@ namespace lab4
                 if (char.IsDigit(token.ToString()[0]))
                 {
                     result.Add(token);
+                    continue;
                 }
-                else if (stk.Count != 0 && IsOperation(token.ToString()[0]))
+
+                if (stk.Count != 0 && IsOperation(token.ToString()[0]))
                 {
                     object lastOperation = stk.Peek();
                     if (GetOperatonPriority(lastOperation) < GetOperatonPriority(token))
                     {
                         stk.Push(token);
-                        continue;
                     }
                     else
                     {
                         result.Add(stk.Pop());
                         stk.Push(token);
-                        continue;
                     }
+
+                    continue;
                 }
-                else if (stk.Count() == 0)
+
+                if (stk.Count() == 0)
                 {
                     stk.Push(token);
                     continue;
@@ -82,7 +88,6 @@ namespace lab4
                 if (token.ToString()[0] == '(')
                 {
                     stk.Push(token);
-                    continue;
                 }
                 else if (token.ToString()[0] == ')')
                 {
@@ -104,10 +109,10 @@ namespace lab4
             {
                 switch (operation)
                 {
-                    case '+': return 1;
-                    case '-': return 1;
-                    case '*': return 2;
-                    case '/': return 2;
+                    case "+": return 1;
+                    case "-": return 1;
+                    case "*": return 2;
+                    case "/": return 2;
                     default: return 0;
                 }
             }
@@ -123,29 +128,26 @@ namespace lab4
             return result;
         }
 
-        static int CalculateRPN(List<object> rpnString)
+        static double CalculateRpn(List<object> rpnString)
         {
-            Stack<int> operationStack = new Stack<int>();
-            //List<long> numbers = new List<long>();
-            //List<char> operands = new List<char>();
+            Stack<double> operationStack = new Stack<double>();
+
             foreach (var token in rpnString)
             {
                 if (char.IsDigit(token.ToString()[0]))
                 {
-                    operationStack.Push(Convert.ToInt32(token));
-                    //numbers.Add(Convert.ToInt64(token));
+                    operationStack.Push(double.Parse(token.ToString()));
                 }
                 else
                 {
                     char operation = token.ToString()[0];
-                    int num2 = operationStack.Pop();
-                    int num1 = operationStack.Pop();
+                    double num2 = operationStack.Pop();
+                    double num1 = operationStack.Pop();
                     operationStack.Push(ApplyOperation(operation, num1, num2));
-                    //operands.Add(Convert.ToChar(token));
                 }
             }
 
-            static int ApplyOperation(char operation, int op1, int op2)
+            static double ApplyOperation(char operation, double op1, double op2)
             {
                 switch (operation)
                 {
@@ -155,17 +157,6 @@ namespace lab4
                     case '/': return (op1 / op2);
                     default: return 0;
                 }
-            }
-
-            static bool IsOperation(char c)
-            {
-                if (c == '+' ||
-                    c == '-' ||
-                    c == '*' ||
-                    c == '/')
-                    return true;
-                else
-                    return false;
             }
 
             return operationStack.Pop();
